@@ -16,41 +16,45 @@ class RedisSessionStore extends SessionStore {
      * @param ctx Tomcat context
      */
     @Override
-    public void configureSessionStore(CommandLineParams commandLineParams, Context ctx){
+    public void configureSessionStore(CommandLineParams commandLineParams, Context ctx) {
         RedisManager redisManager = new RedisManager();
         redisManager.setDisableListeners(true);
 
-        if(System.getenv("REDIS_URL") == null && System.getenv("REDISTOGO_URL") == null){
+        if (System.getenv("REDIS_URL") == null && System.getenv("REDISTOGO_URL") == null && System.getenv("REDISCLOUD_URL") == null) {
             System.out.println("WARNING: redis session store being used, but the required environment variable isn't set.");
             System.out.println("Redis session store is configured with REDIS_URL or REDISTOGO_URL");
         } else {
+            String redisKey = null;
             try {
                 URI redisUri = null;
-                if(System.getenv("REDIS_URL") != null) {                    
-                    redisUri = new URI(System.getenv("REDIS_URL"));                    
+                if (System.getenv("REDIS_URL") != null) {
+                    redisKey = "REDIS_URL";
+                    redisUri = new URI(System.getenv("REDIS_URL"));
+                } else if (System.getenv("REDISTOGO_URL") != null) {
+                    redisKey = "REDISTOGO_URL";
+                    redisUri = new URI(System.getenv("REDISTOGO_URL"));
                 } else {
-                    redisUri = new URI(System.getenv("REDISTOGO_URL"));                    
+                    redisKey = "REDISCLOUD_URL";
+                    redisUri = new URI(System.getenv("REDISCLOUD_URL"));
                 }
 
-                if(redisUri.getHost() != null) {
+                if (redisUri.getHost() != null) {
                     redisManager.setRedisHostname(redisUri.getHost());
                 }
-                if(redisUri.getPort() != -1) {
+                if (redisUri.getPort() != -1) {
                     redisManager.setRedisPort(redisUri.getPort());
                 }
-                if(redisUri.getPath() != null && redisUri.getPath().length() > 1) {
+                if (redisUri.getPath() != null && redisUri.getPath().length() > 1) {
                     redisManager.setDbIndex(Integer.parseInt(redisUri.getPath().split("/")[1]));
                 }
-                if(redisUri.getUserInfo() != null) {
-                    redisManager.setRedisPassword(redisUri.getUserInfo().substring(redisUri.getUserInfo().indexOf(":")+1));
+                if (redisUri.getUserInfo() != null) {
+                    redisManager.setRedisPassword(redisUri.getUserInfo().substring(redisUri.getUserInfo().indexOf(":") + 1));
                 }
-                
-            } catch (URISyntaxException e){
-                System.out.println("WARNING: redis session store environment variable invalid "+System.getenv("REDIS_URL"));
+
+            } catch (URISyntaxException e) {
+                System.out.println("WARNING: redis session store environment variable invalid " + System.getenv(redisKey));
             }
         }
         ctx.setManager(redisManager);
     }
-    
-    
 }
